@@ -122,9 +122,9 @@ public class Main {
                 return new SJFScheduler(contextSwitch);
 
             case "RR":
-                // TODO: Implement RRScheduler (implements Scheduler) and uncomment below.
-                // return new RRScheduler(contextSwitch, rrQuantum);
-                return null;
+                // TODO: Implement RRScheduler (implements Scheduler) and uncomment below. DONE
+                return new RRScheduler(contextSwitch, rrQuantum);
+               // return null;
 
             case "PRIORITY":
                 // TODO: Implement PriorityScheduler (implements Scheduler) and uncomment below.
