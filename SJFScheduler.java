@@ -15,6 +15,7 @@ public class SJFScheduler implements Scheduler {
     public void schedule(List<Process> processes) {
         this.processes = processes;
 
+        // sort by arrival to ease adding arrivals
         processes.sort(Comparator.comparingInt(Process::getArrivalTime));
 
         PriorityQueue<Process> readyQueue = new PriorityQueue<>(
@@ -29,69 +30,67 @@ public class SJFScheduler implements Scheduler {
 
         int time = 0;
         int completed = 0;
-        int index = 0;
+        int index = 0; // index over sorted processes for arrivals
         Process current = null;
-        Set<String> started = new HashSet<>();
+        Process prev = null; // previously running process (used to determine if context switch is needed)
 
         while (completed < processes.size()) {
 
-            // add arrived processes
-            while (index < processes.size()
-                    && processes.get(index).getArrivalTime() <= time) {
+            while (index < processes.size() && processes.get(index).getArrivalTime() <= time) {
                 readyQueue.add(processes.get(index));
                 index++;
             }
 
             if (current == null) {
                 if (readyQueue.isEmpty()) {
-                    time = processes.get(index).getArrivalTime();
-                    continue;
-                } else {
-                    current = readyQueue.poll();
-                    if (!started.contains(current.getName())) {
-                        executionOrder.add(current.getName());
-                        started.add(current.getName());
+                    // CPU idle -> jump to next arrival time (no context switch while idle)
+                    if (index < processes.size()) {
+                        time = Math.max(time, processes.get(index).getArrivalTime());
+                        continue;
+                    } else {
+                        break;
                     }
+                } else {
+                    Process next = readyQueue.poll();
+
+                    // if switching from a previous process to this new one, add context switch
+                    if (prev != null && prev != next && contextSwitch > 0) {
+                        time += contextSwitch;
+                        // add arrivals that happened during the context switch
+                        while (index < processes.size() && processes.get(index).getArrivalTime() <= time) {
+                            readyQueue.add(processes.get(index));
+                            index++;
+                        }
+                    }
+
+                    current = next;
+
+                    // record every dispatch (not only first start)
+                    executionOrder.add(current.getName());
                 }
             }
 
-            int nextArrival = (index < processes.size())
-                    ? processes.get(index).getArrivalTime()
-                    : Integer.MAX_VALUE;
+            current.setRemainingTime(current.getRemainingTime() - 1);
+            time += 1;
 
-            int execTime = Math.min(
-                    current.getRemainingTime(),
-                    nextArrival - time
-            );
-
-            if (execTime <= 0) execTime = 1;
-
-            current.setRemainingTime(current.getRemainingTime() - execTime);
-            time += execTime;
-
-            // check new arrivals
-            while (index < processes.size()
-                    && processes.get(index).getArrivalTime() <= time) {
+            while (index < processes.size() && processes.get(index).getArrivalTime() <= time) {
                 readyQueue.add(processes.get(index));
                 index++;
             }
 
-            // preemption check
-            if (!readyQueue.isEmpty()
-                    && current.getRemainingTime() > 0
+            if (!readyQueue.isEmpty() && current.getRemainingTime() > 0
                     && readyQueue.peek().getRemainingTime() < current.getRemainingTime()) {
-
+                prev = current; // mark this as previous so next selection triggers context switch
                 readyQueue.add(current);
                 current = null;
-                time += contextSwitch;
                 continue;
             }
 
             if (current.getRemainingTime() == 0) {
                 current.setCompletionTime(time);
                 completed++;
+                prev = current; 
                 current = null;
-                time += contextSwitch;
             }
         }
 
