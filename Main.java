@@ -16,7 +16,7 @@ import com.google.gson.*;
 import java.io.FileReader;
 import java.util.*;
 
-public class Main {
+public class Main2 {
 
     public static void main(String[] args) {
         String jsonFile = "test_2.json";        // Dear team please change this according to the name of the JSON file u use while testing ur class.
@@ -78,6 +78,10 @@ public class Main {
                 System.out.println();
                 scheduler.printTurnaroundTime();
                 System.out.println();
+                if (scheduler instanceof AGScheduler) {
+                   ((AGScheduler) scheduler).printQuantumHistory();
+                   System.out.println();
+                }
                 System.out.printf("Average Waiting Time = %.2f%n", scheduler.getAverageWaitingTime());
                 System.out.printf("Average Turnaround Time = %.2f%n", scheduler.getAverageTurnaroundTime());
                 System.out.println();
@@ -123,8 +127,8 @@ public class Main {
 
             case "RR":
                 // TODO: Implement RRScheduler (implements Scheduler) and uncomment below. DONE
-                return new RRScheduler(contextSwitch, rrQuantum);
-               // return null;
+                //return new RRScheduler(contextSwitch, rrQuantum);
+               return null;
 
             case "PRIORITY":
                 // TODO: Implement PriorityScheduler (implements Scheduler) and uncomment below.
@@ -135,7 +139,8 @@ public class Main {
                 // TODO: Implement AGScheduler (implements Scheduler) and uncomment below.
                 // AG may need extra params (e.g. defaultQuantum). Read them from JSON and pass here.
                 // return new AGScheduler(contextSwitch);
-                return null;
+                return new AGScheduler();
+                
 
             default:
                 return null;
