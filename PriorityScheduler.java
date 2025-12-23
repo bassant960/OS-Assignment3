@@ -18,67 +18,89 @@ public class PriorityScheduler implements Scheduler {
         int completed = 0;
         int n = processes.size();
         Process currentProcess = null;
-        int lastAgingTime = 0;
 
         while (completed < n) {
-            if (currentTime > 0 && currentTime - lastAgingTime >= agingInterval) {
-                for (Process p : processes) {
-                    if (p.getArrivalTime() <= currentTime && !p.isFinished() && p != currentProcess) {
-                        if (p.getPriority() > 1) {
-                            p.setPriority(p.getPriority() - 1);
-                        }
-                    }
-                }
-                lastAgingTime = currentTime;
-            }
+            Process candidate = selectBestProcess(currentTime);
 
-            Process bestProcess = null;
-            for (Process p : processes) {
-                if (p.getArrivalTime() <= currentTime && !p.isFinished()) {
-                    if (bestProcess == null || p.getPriority() < bestProcess.getPriority() ||
-                            (p.getPriority() == bestProcess.getPriority() && p.getArrivalTime() < bestProcess.getArrivalTime())) {
-                        bestProcess = p;
-                    }
-                }
-            }
-
-            if (bestProcess == null) {
+            if (candidate == null) {
                 currentTime++;
                 continue;
             }
 
-            if (currentProcess != bestProcess) {
-                currentProcess = bestProcess;
-                currentTime += contextSwitch;
-                continue;
+            if (currentProcess != candidate) {
+                // Pre-switch: Load candidate into execution order
+                executionOrder.add(candidate.getName());
+
+                // Context Switch Loop
+                for (int i = 0; i < contextSwitch; i++) {
+                    currentTime++;
+                    applyAging(currentTime, null);
+                }
+
+                // Re-check if candidate is still the best after switch duration
+                Process postSwitchBest = selectBestProcess(currentTime);
+                if (postSwitchBest != candidate) {
+                    // If a better process arrived during CS, restart loop to pick it
+                    currentProcess = null;
+                    continue;
+                }
+                currentProcess = candidate;
             }
 
-            if (executionOrder.isEmpty() || !executionOrder.get(executionOrder.size() - 1).equals(currentProcess.getName())) {
-                executionOrder.add(currentProcess.getName());
-            }
-
+            // Execute one time unit
             currentProcess.setRemainingTime(currentProcess.getRemainingTime() - 1);
             currentTime++;
+            applyAging(currentTime, currentProcess);
 
-            Process nextProcess = null;
-            for (Process p : processes) {
-                if (p.getArrivalTime() <= currentTime && !p.isFinished()) {
-                    if (nextProcess == null || p.getPriority() < nextProcess.getPriority() ||
-                            (p.getPriority() == nextProcess.getPriority() && p.getArrivalTime() < nextProcess.getArrivalTime())) {
-                        nextProcess = p;
-                    }
-                }
-            }
-            if (nextProcess != currentProcess) {
-                currentProcess = null;
-            }
-
-            if (currentProcess.isFinished()) {
+            if (currentProcess.getRemainingTime() <= 0) {
+                currentProcess.setFinished(true);
                 currentProcess.setCompletionTime(currentTime);
                 currentProcess.setTurnaroundTime(currentProcess.getCompletionTime() - currentProcess.getArrivalTime());
                 currentProcess.setWaitingTime(currentProcess.getTurnaroundTime() - currentProcess.getBurstTime());
                 completed++;
                 currentProcess = null;
+            } else {
+                // Preemption check for next iteration
+                Process nextBest = selectBestProcess(currentTime);
+                if (nextBest != currentProcess) {
+                    currentProcess = null;
+                }
+            }
+        }
+    }
+
+    private Process selectBestProcess(int currentTime) {
+        Process best = null;
+        for (int i = 0; i < processes.size(); i++) {
+            Process p = processes.get(i);
+            if (p.getArrivalTime() <= currentTime && !p.isFinished()) {
+                if (best == null || isHigherPriority(p, best, i)) {
+                    best = p;
+                }
+            }
+        }
+        return best;
+    }
+
+    private boolean isHigherPriority(Process p, Process best, int pIndex) {
+        if (p.getPriority() != best.getPriority()) {
+            return p.getPriority() < best.getPriority();
+        }
+        if (p.getArrivalTime() != best.getArrivalTime()) {
+            return p.getArrivalTime() < best.getArrivalTime();
+        }
+        return pIndex < processes.indexOf(best);
+    }
+
+    private void applyAging(int currentTime, Process runningProcess) {
+        if (agingInterval <= 0) return;
+        for (Process p : processes) {
+            if (p.getArrivalTime() <= currentTime && !p.isFinished() && p != runningProcess) {
+                p.setWaitCounter(p.getWaitCounter() + 1);
+                if (p.getWaitCounter() >= agingInterval) {
+                    p.setPriority(Math.max(1, p.getPriority() - 1));
+                    p.setWaitCounter(0);
+                }
             }
         }
     }
