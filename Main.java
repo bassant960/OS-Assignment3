@@ -127,19 +127,19 @@ public class Main2 {
 
             case "RR":
                 // TODO: Implement RRScheduler (implements Scheduler) and uncomment below. DONE
-                //return new RRScheduler(contextSwitch, rrQuantum);
-               return null;
+                return new RRScheduler(contextSwitch, rrQuantum);
+               //return null;
 
             case "PRIORITY":
                 // TODO: Implement PriorityScheduler (implements Scheduler) and uncomment below.
-                // return new PriorityScheduler(contextSwitch, agingInterval);
-                return null;
+                 return new PriorityScheduler(contextSwitch, agingInterval);
+                //return null;
 
             case "AG":
                 // TODO: Implement AGScheduler (implements Scheduler) and uncomment below.
                 // AG may need extra params (e.g. defaultQuantum). Read them from JSON and pass here.
-                // return new AGScheduler(contextSwitch);
-                return new AGScheduler();
+                 return new AGScheduler(contextSwitch);
+                //return new AGScheduler();
                 
 
             default:
