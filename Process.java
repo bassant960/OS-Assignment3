@@ -11,6 +11,9 @@ public class Process {
     private int turnaroundTime;
     private int completionTime;
 
+    private int waitCounter;
+    private boolean finished;
+
     public Process(String name, int arrivalTime, int burstTime, int priority, int quantum) {
         this.name = name;
         this.arrivalTime = arrivalTime;
@@ -18,9 +21,9 @@ public class Process {
         this.remainingTime = burstTime;
         this.priority = priority;
         this.quantum = quantum;
+        this.waitCounter = 0;
+        this.finished = false;
     }
-
-    // ---------- Getters & Setters ----------
 
     public String getName() {
         return name;
@@ -82,10 +85,20 @@ public class Process {
         this.completionTime = completionTime;
     }
 
-    // ---------- Helper Methods ----------
+    public int getWaitCounter() {
+        return waitCounter;
+    }
+
+    public void setWaitCounter(int waitCounter) {
+        this.waitCounter = waitCounter;
+    }
 
     public boolean isFinished() {
-        return remainingTime <= 0;
+        return finished;
+    }
+
+    public void setFinished(boolean finished) {
+        this.finished = finished;
     }
 
     @Override
